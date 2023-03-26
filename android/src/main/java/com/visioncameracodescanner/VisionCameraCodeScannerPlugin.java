@@ -37,6 +37,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 public class VisionCameraCodeScannerPlugin extends FrameProcessorPlugin {
   private BarcodeScanner barcodeScanner = null;
   private int barcodeScannerFormatsBitmap = -1;
@@ -58,6 +63,30 @@ public class VisionCameraCodeScannerPlugin extends FrameProcessorPlugin {
     Barcode.FORMAT_PDF417,
     Barcode.FORMAT_AZTEC
   ));
+
+
+  private void saveImage(InputImage image) {
+    try {
+
+       SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd_HH_mm_ss");
+      String currentTimeStamp = dateFormat.format(new Date());
+      String path = "/storage/emulated/0/code_pic_" + currentTimeStamp + ".png";
+
+      Bitmap bm = ImageConvertUtils.getInstance().getUpRightBitmap(image);
+
+      File file = new File(path);
+      FileOutputStream out = new FileOutputStream(file);
+      bm.compress(Bitmap.CompressFormat.JPEG, 90, out);
+      out.flush();
+      out.close();
+      System.out.println("Correctly saved");
+
+
+    } catch (Exception e) {
+      System.out.println(e.getMessage());
+      e.printStackTrace();
+    }
+  }
 
   @Override
   public Object callback(ImageProxy frame, Object[] params) {
@@ -86,6 +115,9 @@ public class VisionCameraCodeScannerPlugin extends FrameProcessorPlugin {
           }
         }
       }
+
+      this.saveImage(image);
+
 
       tasks.add(barcodeScanner.process(image));
 
@@ -219,17 +251,17 @@ public class VisionCameraCodeScannerPlugin extends FrameProcessorPlugin {
 
   // Bitmap Inversion https://gist.github.com/moneytoo/87e3772c821cb1e86415
   private Bitmap invert(Bitmap src)
-	{ 
+	{
 		int height = src.getHeight();
-		int width = src.getWidth();    
+		int width = src.getWidth();
 
 		Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
 		Canvas canvas = new Canvas(bitmap);
 		Paint paint = new Paint();
-		
+
 		ColorMatrix matrixGrayscale = new ColorMatrix();
 		matrixGrayscale.setSaturation(0);
-		
+
 		ColorMatrix matrixInvert = new ColorMatrix();
 		matrixInvert.set(new float[]
 		{
@@ -239,10 +271,10 @@ public class VisionCameraCodeScannerPlugin extends FrameProcessorPlugin {
 			0.0f, 0.0f, 0.0f, 1.0f, 0.0f
 		});
 		matrixInvert.preConcat(matrixGrayscale);
-		
+
 		ColorMatrixColorFilter filter = new ColorMatrixColorFilter(matrixInvert);
 		paint.setColorFilter(filter);
-		
+
 		canvas.drawBitmap(src, 0, 0, paint);
 		return bitmap;
 	}
